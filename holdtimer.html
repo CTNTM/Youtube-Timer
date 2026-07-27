@@ -1579,8 +1579,21 @@
           return;
         }
 
-        let cursor = 0;
+        // Merge adjacent segments with the same tone
+        const mergedSegments = [];
+        let currentMerge = null;
         segments.forEach((segment) => {
+          if (currentMerge && currentMerge.tone === segment.tone && currentMerge.isActive === segment.isActive) {
+            currentMerge.duration += segment.duration;
+          } else {
+            if (currentMerge) mergedSegments.push(currentMerge);
+            currentMerge = { ...segment };
+          }
+        });
+        if (currentMerge) mergedSegments.push(currentMerge);
+
+        let cursor = 0;
+        mergedSegments.forEach((segment) => {
           const widthPercent = Math.max(0, Math.min(100 - cursor, (segment.duration / totalDuration) * 100));
           if (widthPercent <= 0) return;
 
