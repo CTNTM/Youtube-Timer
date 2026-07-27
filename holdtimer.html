@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A simple stopwatch for timing how long you hold each keyboard key." />
+  <title>HoldTimer — Key Hold Stopwatch</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #68738a;
+      --line: #e5e9f1;
+      --paper: #ffffff;
+      --canvas: #f6f7fb;
+      --shadow: 0 22px 60px rgba(31, 42, 68, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 320px; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 8% 4%, rgba(255, 210, 120, 0.18), transparent 25rem),
+        radial-gradient(circle at 92% 18%, rgba(122, 209, 255, 0.16), transparent 27rem),
+        var(--canvas);
+    }
+
+    button,
+    input { font: inherit; }
+
+    button { cursor: pointer; }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(57, 128, 255, 0.35);
+      outline-offset: 3px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .page-shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 1.12rem;
+      letter-spacing: -0.03em;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 12px;
+      color: #fff;
+      background: linear-gradient(135deg, #ff5d70, #ff925f 48%, #ffc84d);
+      box-shadow: 0 8px 18px rgba(255, 105, 91, 0.26);
+      font-size: 1.1rem;
+    }
+
+    .topbar-note {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.8fr) minmax(420px, 1.2fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .summary-card,
+    .video-card,
+    .tracker-panel {
+      border: 1px solid rgba(211, 218, 232, 0.9);
+      background: rgba(255, 255, 255, 0.93);
+      box-shadow: var(--shadow);
+    }
+
+    .summary-card {
+      display: flex;
+      min-height: 330px;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      padding: 28px;
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 95% 3%, rgba(255, 173, 99, 0.26), transparent 11rem),
+        rgba(255, 255, 255, 0.96);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #7b8499;
+      font-size: 0.73rem;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    p { margin-top: 0; }
+
+    .summary-card h1 {
+      max-width: 12ch;
+      margin-bottom: 0;
+      color: #161e30;
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      line-height: 1.02;
+      letter-spacing: -0.065em;
+    }
+
+    .total-time {
+      margin: 20px 0 4px;
+      color: #16213a;
+      font-size: clamp(3rem, 7vw, 5.7rem);
+      font-weight: 800;
+      line-height: 0.94;
+      letter-spacing: -0.08em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .total-caption {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .summary-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 24px 0 0;
+    }
+
+    .summary-stat {
+      padding: 14px;
+      border: 1px solid #edf0f5;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .summary-stat dt {
+      margin-bottom: 5px;
+      color: #7a8498;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .summary-stat dd {
+      margin: 0;
+      color: #25304a;
+      font-size: 1.18rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .video-card {
+      min-height: 330px;
+      padding: 18px;
+      border-radius: 26px;
+    }
+
+    .video-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 3px 5px 14px;
+    }
+
+    .video-heading h2 {
+      margin-bottom: 0;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .video-heading span {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .video-frame {
+      position: relative;
+      display: grid;
+      min-height: 190px;
+      overflow: hidden;
+      place-items: center;
+      border: 1px solid #e7eaf1;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #1c2437, #323d58);
+    }
+
+    .video-frame::after {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background: linear-gradient(115deg, rgba(255, 255, 255, 0.1), transparent 33%);
+    }
+
+    .video-frame iframe {
+      position: absolute;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .video-placeholder {
+      z-index: 0;
+      width: min(300px, 88%);
+      color: #fff;
+      text-align: center;
+    }
+
+    .play-icon {
+      display: grid;
+      width: 43px;
+      height: 43px;
+      margin: 0 auto 12px;
+      place-items: center;
+      border-radius: 14px;
+      color: #fff;
+      background: #ff5d66;
+      box-shadow: 0 10px 24px rgba(255, 77, 89, 0.35);
+      font-size: 1.05rem;
+      padding-left: 2px;
+    }
+
+    .video-placeholder strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.98rem;
+    }
+
+    .video-placeholder p {
+      margin-bottom: 0;
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .video-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 9px;
+      margin-top: 13px;
+    }
+
+    .video-form input {
+      width: 100%;
+      min-width: 0;
+      height: 43px;
+      padding: 0 13px;
+      border: 1px solid #dfe4ee;
+      border-radius: 12px;
+      color: var(--ink);
+      background: #fff;
+      font-size: 0.86rem;
+    }
+
+    .video-form input::placeholder { color: #9aa3b5; }
+
+    .video-form button,
+    .reset-button {
+      min-height: 43px;
+      border: 0;
+      border-radius: 12px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .video-form button {
+      padding: 0 16px;
+      color: #fff;
+      background: #273451;
+      box-shadow: 0 7px 14px rgba(39, 52, 81, 0.18);
+    }
+
+    .video-form button:hover,
+    .reset-button:hover { transform: translateY(-1px); }
+
+    .video-feedback {
+      min-height: 1.2em;
+      margin: 8px 4px 0;
+      color: #6e778a;
+      font-size: 0.76rem;
+    }
+
+    .video-feedback.is-error { color: #d44755; }
+
+    .tracker-panel {
+      margin-top: 22px;
+      padding: 25px;
+      border-radius: 26px;
+    }
+
+    .tracker-toolbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .tracker-toolbar h2 {
+      margin: 0 0 6px;
+      font-size: clamp(1.3rem, 2.6vw, 1.65rem);
+      letter-spacing: -0.04em;
+    }
+
+    .tracker-toolbar p {
+      max-width: 610px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .reset-button {
+      flex: 0 0 auto;
+      padding: 0 15px;
+      border: 1px solid #e5e8ef;
+      color: #6c7586;
+      background: #fff;
+    }
+
+    .reset-button:hover {
+      border-color: #ffbec5;
+      color: #d84c5b;
+      background: #fff8f8;
+    }
+
+    .live-strip {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      margin: 24px 0 17px;
+      padding: 11px 13px;
+      border: 1px solid #e8ebf1;
+      border-radius: 15px;
+      color: #5e687d;
+      background: #fafbfc;
+      font-size: 0.84rem;
+    }
+
+    .live-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #adb5c4;
+      transition: background 180ms ease, box-shadow 180ms ease;
+    }
+
+    .live-dot.is-active {
+      background: #1bbf81;
+      box-shadow: 0 0 0 5px rgba(27, 191, 129, 0.14);
+    }
+
+    #activeCount {
+      color: #798396;
+      font-size: 0.76rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .activity-track {
+      display: flex;
+      gap: 6px;
+      width: min(100%, 420px);
+      margin: 0 auto 22px;
+    }
+
+    .activity-segment {
+      height: 9px;
+      flex: 1;
+      border-radius: 999px;
+      opacity: 0.28;
+      transform: scaleY(0.82);
+      transition: opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .activity-segment[data-tone="coral"] { background: #ff5e70; }
+    .activity-segment[data-tone="blue"] { background: #5d77ff; }
+    .activity-segment[data-tone="lime"] { background: #6dca67; }
+
+    .activity-segment.is-active {
+      opacity: 1;
+      transform: scaleY(1.25);
+      box-shadow: 0 4px 12px currentColor;
+      animation: pulse 900ms ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      to { filter: brightness(1.12); }
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .key-card {
+      --accent: #ff5e70;
+      --accent-soft: #fff0f2;
+      --accent-ink: #b93649;
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid #e8ebf1;
+      border-radius: 20px;
+      background: #fff;
+      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .key-card[data-tone="blue"] {
+      --accent: #5d77ff;
+      --accent-soft: #eef0ff;
+      --accent-ink: #4057d9;
+    }
+
+    .key-card[data-tone="lime"] {
+      --accent: #64c766;
+      --accent-soft: #eff9ef;
+      --accent-ink: #358d3b;
+    }
+
+    .key-card::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 4px;
+      content: "";
+      background: var(--accent);
+    }
+
+    .key-card.is-active {
+      border-color: color-mix(in srgb, var(--accent) 43%, #fff);
+      box-shadow: 0 16px 32px color-mix(in srgb, var(--accent) 18%, transparent);
+      transform: translateY(-3px);
+    }
+
+    .key-card.is-rebinding {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 17%, transparent);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .timer-number {
+      margin: 0 0 6px;
+      color: #8b94a6;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .label-input {
+      width: 100%;
+      max-width: 150px;
+      padding: 2px 0;
+      border: 0;
+      border-bottom: 1px solid transparent;
+      color: #202a40;
+      background: transparent;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .label-input:hover,
+    .label-input:focus { border-bottom-color: #c9cfdb; }
+
+    .timer-state {
+      flex: 0 0 auto;
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: #7a8495;
+      background: #f3f5f8;
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .key-card.is-active .timer-state {
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+    }
+
+    .key-button {
+      display: grid;
+      width: 100%;
+      min-height: 116px;
+      margin: 20px 0 16px;
+      padding: 12px;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, #fff);
+      border-bottom-width: 6px;
+      border-radius: 18px;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      transition: transform 130ms ease, border-bottom-width 130ms ease, background 130ms ease;
+    }
+
+    .key-button:hover { background: color-mix(in srgb, var(--accent-soft) 72%, #fff); }
+
+    .key-button:active,
+    .key-card.is-rebinding .key-button {
+      border-bottom-width: 2px;
+      transform: translateY(4px);
+    }
+
+    .key-button .key-display {
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: clamp(2.8rem, 6vw, 4.3rem);
+      font-weight: 800;
+      line-height: 0.82;
+      letter-spacing: -0.11em;
+    }
+
+    .key-button .key-change-hint {
+      display: block;
+      margin-top: 10px;
+      color: color-mix(in srgb, var(--accent-ink) 73%, #fff);
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hold-reading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .hold-reading span,
+    .timer-stats dt {
+      color: #7f899c;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .hold-reading strong {
+      color: #202b42;
+      font-size: 1.42rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .timer-stats > div {
+      padding: 10px;
+      border-radius: 11px;
+      background: #f8f9fb;
+    }
+
+    .timer-stats dt { margin-bottom: 3px; }
+
+    .timer-stats dd {
+      margin: 0;
+      color: #364058;
+      font-size: 0.94rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .key-hint {
+      margin: 15px 0 0;
+      color: #778194;
+      font-size: 0.74rem;
+      line-height: 1.4;
+    }
+
+    kbd {
+      display: inline-block;
+      min-width: 1.55em;
+      padding: 1px 5px;
+      border: 1px solid #d8dde7;
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      color: #3f4960;
+      background: #fff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .tips {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 18px 2px 0;
+      color: #788297;
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .tips svg { flex: 0 0 auto; }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 800px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .summary-card,
+      .video-card { min-height: 0; }
+      .video-frame { min-height: 245px; }
+      .key-grid { grid-template-columns: 1fr; }
+      .key-card { padding: 20px; }
+      .key-button { min-height: 108px; }
+    }
+
+    @media (max-width: 560px) {
+      .page-shell { width: min(100% - 22px, 1180px); padding-top: 18px; }
+      .topbar { align-items: flex-start; margin-bottom: 20px; }
+      .topbar-note { max-width: 12ch; text-align: right; }
+      .summary-card,
+      .tracker-panel { padding: 20px; border-radius: 21px; }
+      .video-card { padding: 13px; border-radius: 21px; }
+      .tracker-toolbar { flex-direction: column; gap: 14px; }
+      .reset-button { width: 100%; }
+      .live-strip { grid-template-columns: auto 1fr; }
+      #activeCount { grid-column: 2; }
+      .video-form { grid-template-columns: 1fr; }
+      .video-form button { width: 100%; }
+      .activity-track { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="HoldTimer home">
+        <span class="brand-mark" aria-hidden="true">⏱</span>
+        <span>HoldTimer</span>
+      </a>
+      <span class="topbar-note">A tiny tool for intentional practice</span>
+    </header>
+
+    <section class="hero-grid" aria-label="Session overview">
+      <section class="summary-card" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Your session</p>
+          <h1 id="page-title">Time every hold.</h1>
+          <div class="total-time" id="grandTotal" aria-live="off">0.00s</div>
+          <p class="total-caption">Combined time held across all keys</p>
+        </div>
+        <dl class="summary-stats">
+          <div class="summary-stat">
+            <dt>Total presses</dt>
+            <dd id="grandPresses">0</dd>
+          </div>
+          <div class="summary-stat">
+            <dt>Keys active</dt>
+            <dd id="activeKeys">0</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="video-card" aria-labelledby="video-title">
+        <div class="video-heading">
+          <h2 id="video-title">Video companion</h2>
+          <span>Optional</span>
+        </div>
+        <div class="video-frame">
+          <div class="video-placeholder" id="videoPlaceholder">
+            <span class="play-icon" aria-hidden="true">▶</span>
+            <strong>Bring a YouTube video along</strong>
+            <p>Paste a link below to keep your practice video in view while you time.</p>
+          </div>
+          <iframe
+            id="youtubeFrame"
+            title="Embedded YouTube video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+            hidden></iframe>
+        </div>
+        <form class="video-form" id="videoForm">
+          <label class="sr-only" for="videoUrl">YouTube video link</label>
+          <input id="videoUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste a YouTube link…" />
+          <button type="submit">Load video</button>
+        </form>
+        <p class="video-feedback" id="videoFeedback" aria-live="polite">Only YouTube links are embedded.</p>
+      </section>
+    </section>
+
+    <section class="tracker-panel" aria-labelledby="tracker-title">
+      <div class="tracker-toolbar">
+        <div>
+          <p class="eyebrow">Key hold stopwatch</p>
+          <h2 id="tracker-title">Hold a key to start its timer.</h2>
+          <p>Use the preset keys below, or click a big key to choose a different one. Each key tracks its own time and press count.</p>
+        </div>
+        <button class="reset-button" id="resetButton" type="button">Reset session</button>
+      </div>
+
+      <div class="live-strip" role="status" aria-live="polite">
+        <span class="live-dot" id="liveDot" aria-hidden="true"></span>
+        <span id="liveMessage">Ready — hold H, K, or L anywhere outside a text box.</span>
+        <span id="activeCount">0 active</span>
+      </div>
+
+      <div class="activity-track" aria-hidden="true">
+        <span class="activity-segment" data-activity="coral" data-tone="coral"></span>
+        <span class="activity-segment" data-activity="blue" data-tone="blue"></span>
+        <span class="activity-segment" data-activity="lime" data-tone="lime"></span>
+      </div>
+
+      <div class="key-grid" id="keyGrid" aria-label="Key timers"></div>
+
+      <p class="tips">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 10v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="1" fill="currentColor"/></svg>
+        Your totals stay on this page while it is open. Changing a key or label is saved in this browser; reset only clears the timer results.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const SETTINGS_KEY = "hold-timer-settings-v1";
+      const timerDefaults = [
+        { id: "coral", tone: "coral", code: "KeyH", key: "H", label: "First task" },
+        { id: "blue", tone: "blue", code: "KeyK", key: "K", label: "Second task" },
+        { id: "lime", tone: "lime", code: "KeyL", key: "L", label: "Third task" }
+      ];
+
+      const timers = timerDefaults.map((timer) => ({
+        ...timer,
+        total: 0,
+        count: 0,
+        startedAt: null,
+        lastHold: 0
+      }));
+
+      const refs = new Map();
+      let pendingBindingId = null;
+      let animationFrameId = null;
+
+      const grandTotal = document.getElementById("grandTotal");
+      const grandPresses = document.getElementById("grandPresses");
+      const activeKeys = document.getElementById("activeKeys");
+      const keyGrid = document.getElementById("keyGrid");
+      const liveDot = document.getElementById("liveDot");
+      const liveMessage = document.getElementById("liveMessage");
+      const activeCount = document.getElementById("activeCount");
+      const resetButton = document.getElementById("resetButton");
+      const videoForm = document.getElementById("videoForm");
+      const videoUrl = document.getElementById("videoUrl");
+      const youtubeFrame = document.getElementById("youtubeFrame");
+      const videoPlaceholder = document.getElementById("videoPlaceholder");
+      const videoFeedback = document.getElementById("videoFeedback");
+
+      function getTimer(id) {
+        return timers.find((timer) => timer.id === id);
+      }
+
+      function formatDuration(milliseconds) {
+        const safeMilliseconds = Math.max(0, milliseconds || 0);
+        const centiseconds = Math.floor((safeMilliseconds % 1000) / 10);
+        const wholeSeconds = Math.floor(safeMilliseconds / 1000);
+        const seconds = wholeSeconds % 60;
+        const minutes = Math.floor(wholeSeconds / 60);
+        const base = minutes > 0
+          ? `${minutes}:${String(seconds).padStart(2, "0")}`
+          : String(seconds);
+        return `${base}.${String(centiseconds).padStart(2, "0")}s`;
+      }
+
+      function displayKey(event) {
+        if (event.key === " ") return "Space";
+        if (event.key.length === 1) return event.key.toUpperCase();
+        const replacements = {
+          ArrowUp: "↑",
+          ArrowDown: "↓",
+          ArrowLeft: "←",
+          ArrowRight: "→"
+        };
+        return replacements[event.key] || event.key;
+      }
+
+      function isEditableTarget(target) {
+        return target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+      }
+
+      function isUsableBinding(event) {
+        const excluded = new Set([
+          "AltLeft", "AltRight", "ControlLeft", "ControlRight", "MetaLeft", "MetaRight",
+          "ShiftLeft", "ShiftRight", "CapsLock", "Tab", "Escape"
+        ]);
+        return Boolean(event.code) && !excluded.has(event.code);
+      }
+
+      function currentHold(timer, now) {
+        return timer.startedAt === null ? 0 : Math.max(0, now - timer.startedAt);
+      }
+
+      function timerTotal(timer, now) {
+        return timer.total + currentHold(timer, now);
+      }
+
+      function allTotal(now) {
+        return timers.reduce((total, timer) => total + timerTotal(timer, now), 0);
+      }
+
+      function activeTimers() {
+        return timers.filter((timer) => timer.startedAt !== null);
+      }
+
+      function saveSettings() {
+        try {
+          const settings = timers.map(({ id, code, key, label }) => ({ id, code, key, label }));
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        } catch (error) {
+          // Timing still works when browser storage is unavailable.
+        }
+      }
+
+      function loadSettings() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+          if (!Array.isArray(saved) || saved.length !== timers.length) return;
+          const codes = saved.map((setting) => setting && setting.code);
+          if (codes.some((code) => typeof code !== "string") || new Set(codes).size !== timers.length) return;
+
+          saved.forEach((setting) => {
+            const timer = getTimer(setting.id);
+            if (!timer || typeof setting.key !== "string" || typeof setting.label !== "string") return;
+            timer.code = setting.code;
+            timer.key = setting.key.slice(0, 16);
+            timer.label = setting.label.slice(0, 32).trim() || timer.label;
+          });
+        } catch (error) {
+          // Use the friendly default keys if saved settings are missing or invalid.
+        }
+      }
+
+      function makeElement(tag, className, text) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (text !== undefined) element.textContent = text;
+        return element;
+      }
+
+      function createStat(label) {
+        const wrapper = document.createElement("div");
+        const term = makeElement("dt", "", label);
+        const definition = makeElement("dd", "", "0.00s");
+        wrapper.append(term, definition);
+        return { wrapper, definition };
+      }
+
+      function buildTimerCards() {
+        keyGrid.replaceChildren();
+        timers.forEach((timer, index) => {
+          const card = makeElement("article", "key-card");
+          card.dataset.timerId = timer.id;
+          card.dataset.tone = timer.tone;
+
+          const cardTop = makeElement("div", "card-top");
+          const titleBlock = document.createElement("div");
+          titleBlock.append(makeElement("p", "timer-number", `Timer ${String(index + 1).padStart(2, "0")}`));
+
+          const labelInput = document.createElement("input");
+          labelInput.className = "label-input";
+          labelInput.type = "text";
+          labelInput.value = timer.label;
+          labelInput.maxLength = 32;
+          labelInput.setAttribute("aria-label", `Name for timer ${index + 1}`);
+          labelInput.addEventListener("input", () => {
+            timer.label = labelInput.value.trim() || `Timer ${index + 1}`;
+            refs.get(timer.id).keyButton.setAttribute("aria-label", `Change key for ${timer.label}`);
+            saveSettings();
+          });
+          labelInput.addEventListener("blur", () => {
+            if (!labelInput.value.trim()) labelInput.value = timer.label;
+          });
+
+          titleBlock.append(labelInput);
+          const state = makeElement("span", "timer-state", "Ready");
+          cardTop.append(titleBlock, state);
+
+          const keyButton = makeElement("button", "key-button");
+          keyButton.type = "button";
+          const keyDisplay = makeElement("span", "key-display", timer.key);
+          const keyHint = makeElement("span", "key-change-hint", "Click to change key");
+          keyButton.append(keyDisplay, keyHint);
+          keyButton.addEventListener("click", () => beginRebinding(timer));
+
+          const holdReading = makeElement("div", "hold-reading");
+          const holdCaption = makeElement("span", "hold-caption", "Last hold");
+          const holdValue = makeElement("strong", "hold-value", "0.00s");
+          holdReading.append(holdCaption, holdValue);
+
+          const stats = makeElement("dl", "timer-stats");
+          const totalStat = createStat("Total time");
+          const countStat = createStat("Presses");
+          countStat.definition.textContent = "0";
+          stats.append(totalStat.wrapper, countStat.wrapper);
+
+          const hint = makeElement("p", "key-hint");
+          hint.append("Hold ");
+          const hintKey = makeElement("kbd", "", timer.key);
+          hint.append(hintKey, " to time this task.");
+
+          card.append(cardTop, keyButton, holdReading, stats, hint);
+          keyGrid.append(card);
+          refs.set(timer.id, {
+            card,
+            labelInput,
+            state,
+            keyButton,
+            keyDisplay,
+            keyHint,
+            holdCaption,
+            holdValue,
+            totalValue: totalStat.definition,
+            countValue: countStat.definition,
+            hintKey
+          });
+        });
+      }
+
+      function updateTimerIdentity(timer) {
+        const ref = refs.get(timer.id);
+        if (!ref) return;
+        ref.keyDisplay.textContent = timer.key;
+        ref.hintKey.textContent = timer.key;
+        ref.keyButton.setAttribute("aria-label", `Change key for ${timer.label}`);
+      }
+
+      function render(now = performance.now()) {
+        const active = activeTimers();
+        timers.forEach((timer) => {
+          const ref = refs.get(timer.id);
+          const isActive = timer.startedAt !== null;
+          const hold = isActive ? currentHold(timer, now) : timer.lastHold;
+          ref.card.classList.toggle("is-active", isActive);
+          ref.card.classList.toggle("is-rebinding", pendingBindingId === timer.id);
+          ref.state.textContent = isActive ? "Holding" : pendingBindingId === timer.id ? "Choose key" : "Ready";
+          ref.holdCaption.textContent = isActive ? "This hold" : "Last hold";
+          ref.holdValue.textContent = formatDuration(hold);
+          ref.totalValue.textContent = formatDuration(timerTotal(timer, now));
+          ref.countValue.textContent = String(timer.count);
+          ref.keyHint.textContent = pendingBindingId === timer.id ? "Press a key now" : "Click to change key";
+          const activity = document.querySelector(`[data-activity="${timer.id}"]`);
+          if (activity) activity.classList.toggle("is-active", isActive);
+        });
+
+        grandTotal.textContent = formatDuration(allTotal(now));
+        grandPresses.textContent = String(timers.reduce((count, timer) => count + timer.count, 0));
+        activeKeys.textContent = String(active.length);
+        activeCount.textContent = `${active.length} active`;
+        liveDot.classList.toggle("is-active", active.length > 0);
+      }
+
+      function startAnimation() {
+        if (animationFrameId !== null) return;
+        const tick = (now) => {
+          render(now);
+          if (activeTimers().length > 0) {
+            animationFrameId = requestAnimationFrame(tick);
+          } else {
+            animationFrameId = null;
+          }
+        };
+        animationFrameId = requestAnimationFrame(tick);
+      }
+
+      function setLiveMessage(message) {
+        liveMessage.textContent = message;
+      }
+
+      function startHold(timer, now = performance.now()) {
+        if (timer.startedAt !== null) return;
+        timer.startedAt = now;
+        timer.count += 1;
+        setLiveMessage(`Timing ${timer.label} with ${timer.key}. Release the key when you are done.`);
+        render(now);
+        startAnimation();
+      }
+
+      function finishHold(timer, now = performance.now(), announce = true) {
+        if (timer.startedAt === null) return false;
+        const duration = currentHold(timer, now);
+        timer.total += duration;
+        timer.lastHold = duration;
+        timer.startedAt = null;
+        render(now);
+        if (announce) setLiveMessage(`${timer.label}: ${formatDuration(duration)} added to your total.`);
+        return true;
+      }
+
+      function finishAllHolds(reason) {
+        const now = performance.now();
+        const finished = timers.filter((timer) => finishHold(timer, now, false));
+        if (finished.length > 0) {
+          setLiveMessage(reason || "Active holds were saved.");
+          render(now);
+        }
+      }
+
+      function beginRebinding(timer) {
+        if (timer.startedAt !== null) finishHold(timer);
+        pendingBindingId = timer.id;
+        setLiveMessage(`Choose a new key for ${timer.label}. Press Escape to cancel.`);
+        render();
+      }
+
+      function cancelRebinding() {
+        if (!pendingBindingId) return;
+        pendingBindingId = null;
+        setLiveMessage("Key change cancelled. Your existing key is still ready.");
+        render();
+      }
+
+      function completeRebinding(event) {
+        const timer = getTimer(pendingBindingId);
+        if (!timer) return;
+        if (event.code === "Escape") {
+          cancelRebinding();
+          return;
+        }
+        if (!isUsableBinding(event)) {
+          setLiveMessage("Please choose a regular key, number, arrow, or space bar.");
+          return;
+        }
+        const alreadyUsed = timers.find((candidate) => candidate.id !== timer.id && candidate.code === event.code);
+        if (alreadyUsed) {
+          setLiveMessage(`${displayKey(event)} is already used by ${alreadyUsed.label}. Choose another key.`);
+          return;
+        }
+        timer.code = event.code;
+        timer.key = displayKey(event);
+        pendingBindingId = null;
+        updateTimerIdentity(timer);
+        saveSettings();
+        setLiveMessage(`${timer.label} is now assigned to ${timer.key}.`);
+        render();
+      }
+
+      function resetSession() {
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        timers.forEach((timer) => {
+          timer.total = 0;
+          timer.count = 0;
+          timer.startedAt = null;
+          timer.lastHold = 0;
+        });
+        setLiveMessage("Session reset. Hold one of your keys to begin again.");
+        render();
+      }
+
+      function extractYoutubeId(value) {
+        const raw = value.trim();
+        if (/^[A-Za-z0-9_-]{11}$/.test(raw)) return raw;
+        let url;
+        try {
+          url = new URL(raw);
+        } catch (error) {
+          return null;
+        }
+
+        const host = url.hostname.replace(/^www\./, "").toLowerCase();
+        let id = null;
+        if (host === "youtu.be") {
+          id = url.pathname.split("/").filter(Boolean)[0];
+        } else if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtube-nocookie.com") {
+          const parts = url.pathname.split("/").filter(Boolean);
+          if (url.pathname === "/watch") id = url.searchParams.get("v");
+          else if (["embed", "shorts", "live"].includes(parts[0])) id = parts[1];
+        }
+        return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+      }
+
+      function loadVideo(event) {
+        event.preventDefault();
+        const id = extractYoutubeId(videoUrl.value);
+        if (!id) {
+          videoFeedback.textContent = "That does not look like a YouTube video link. Try a full youtube.com or youtu.be URL.";
+          videoFeedback.classList.add("is-error");
+          return;
+        }
+        youtubeFrame.src = `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+        youtubeFrame.hidden = false;
+        videoPlaceholder.hidden = true;
+        videoFeedback.textContent = "Video loaded. Your timers are still ready to use.";
+        videoFeedback.classList.remove("is-error");
+      }
+
+      window.addEventListener("keydown", (event) => {
+        if (pendingBindingId) {
+          event.preventDefault();
+          completeRebinding(event);
+          return;
+        }
+        if (isEditableTarget(event.target) || event.repeat) return;
+        const timer = timers.find((candidate) => candidate.code === event.code);
+        if (!timer) return;
+        event.preventDefault();
+        startHold(timer);
+      });
+
+      window.addEventListener("keyup", (event) => {
+        const timer = timers.find((candidate) => candidate.code === event.code && candidate.startedAt !== null);
+        if (!timer) return;
+        event.preventDefault();
+        finishHold(timer);
+      });
+
+      window.addEventListener("blur", () => finishAllHolds("You left the page, so active holds were saved."));
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) finishAllHolds("The page was hidden, so active holds were saved.");
+      });
+      resetButton.addEventListener("click", resetSession);
+      videoForm.addEventListener("submit", loadVideo);
+
+      loadSettings();
+      buildTimerCards();
+      timers.forEach(updateTimerIdentity);
+      render();
+    })();
+  </script>
+</body>
+</html>
