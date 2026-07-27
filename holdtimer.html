@@ -312,6 +312,57 @@
       opacity: 0.3;
     }
 
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin: 12px 0;
+      align-items: center;
+    }
+
+    .stat-pie {
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .stat-pie path {
+      cursor: pointer;
+      transition: opacity 200ms ease;
+    }
+
+    .stat-pie path:hover {
+      opacity: 0.8;
+    }
+
+    .stat-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-legend-entry {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .stat-legend-entry .stat-circle-dot {
+      width: 10px;
+      height: 10px;
+    }
+
+    .stat-label {
+      flex: 1;
+      min-width: 0;
+      color: #111827;
+    }
+
+    .stat-percent {
+      color: #6b7280;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
     .action-row {
       display: flex;
       gap: 6px;
@@ -1554,16 +1605,71 @@
       function renderStatsRow() {
         const total = getTotalDuration();
         statsRow.replaceChildren();
+
+        // Combine timers by tone
+        const combined = {};
         timers.forEach((timer) => {
-          const pct = total > 0 ? Math.round((timer.total / total) * 100) : 0;
-          const circle = makeElement("div", "stat-circle");
-          if (pct === 0) circle.classList.add("inactive");
-          circle.style.color = TONE_COLORS[timer.tone] || "#9ca3af";
-          const dot = makeElement("span", "stat-circle-dot");
-          const label = makeElement("span", "", `${pct}%`);
-          circle.append(dot, label);
-          statsRow.append(circle);
+          if (!combined[timer.tone]) {
+            combined[timer.tone] = { tone: timer.tone, total: 0, labels: [] };
+          }
+          combined[timer.tone].total += timer.total;
+          combined[timer.tone].labels.push(timer.label);
         });
+
+        const uniqueTones = Object.values(combined).filter(g => g.total > 0);
+
+        // Create pie chart
+        const pieSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        pieSvg.setAttribute("viewBox", "0 0 100 100");
+        pieSvg.setAttribute("style", "width: 140px; height: 140px; margin-bottom: 8px;");
+        pieSvg.setAttribute("class", "stat-pie");
+
+        let currentAngle = -90;
+        let slices = [];
+
+        uniqueTones.forEach((group) => {
+          const sliceAngle = (group.total / total) * 360;
+          slices.push({ group, startAngle: currentAngle, sliceAngle });
+          currentAngle += sliceAngle;
+        });
+
+        slices.forEach(({ group, startAngle, sliceAngle }) => {
+          const startRad = (startAngle * Math.PI) / 180;
+          const endRad = ((startAngle + sliceAngle) * Math.PI) / 180;
+
+          const x1 = 50 + 40 * Math.cos(startRad);
+          const y1 = 50 + 40 * Math.sin(startRad);
+          const x2 = 50 + 40 * Math.cos(endRad);
+          const y2 = 50 + 40 * Math.sin(endRad);
+
+          const largeArc = sliceAngle > 180 ? 1 : 0;
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          const d = `M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArc} 1 ${x2} ${y2} Z`;
+          path.setAttribute("d", d);
+          path.setAttribute("fill", TONE_COLORS[group.tone] || "#9ca3af");
+          path.setAttribute("stroke", "#fff");
+          path.setAttribute("stroke-width", "2");
+          path.setAttribute("data-tone", group.tone);
+          path.setAttribute("title", `${group.labels.join(", ")}`);
+          pieSvg.append(path);
+        });
+
+        statsRow.append(pieSvg);
+
+        // Show legend
+        const legend = makeElement("div", "stat-legend");
+        uniqueTones.forEach((group) => {
+          const pct = total > 0 ? Math.round((group.total / total) * 100) : 0;
+          const entry = makeElement("div", "stat-legend-entry");
+          entry.style.color = TONE_COLORS[group.tone] || "#9ca3af";
+          const dot = makeElement("span", "stat-circle-dot");
+          const labels = makeElement("span", "stat-label", group.labels.join(" + "));
+          const percent = makeElement("span", "stat-percent", `${pct}%`);
+          entry.append(dot, labels, percent);
+          legend.append(entry);
+        });
+        statsRow.append(legend);
       }
 
       function encodeShareUrl() {
@@ -1647,8 +1753,11 @@
       }
 
       function addNewTimer() {
-        const newTones = ["coral", "blue", "lime"];
-        const nextTone = newTones[timers.length % newTones.length];
+        const allTones = ["coral", "blue", "lime"];
+        const usedTones = new Set(timers.map(t => t.tone));
+        let nextTone = allTones.find(t => !usedTones.has(t));
+        if (!nextTone) nextTone = allTones[timers.length % allTones.length];
+        
         const newTimer = {
           id: generateTimerId(),
           tone: nextTone,
