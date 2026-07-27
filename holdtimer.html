@@ -1036,62 +1036,295 @@
       .summary-grid { grid-template-columns: 1fr; }
       .video-form { flex-direction: column; }
     }
+
+    .page-shell {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .shell {
+      padding: 18px;
+      border: 1px solid #e5e7eb;
+      border-radius: 22px;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .search-pill {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: #fafafa;
+      color: #111827;
+    }
+
+    .search-pill .emoji {
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border-radius: 50%;
+      background: #f3f4f6;
+      font-size: 0.95rem;
+    }
+
+    .search-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #6b7280;
+    }
+
+    .search-message {
+      font-size: 0.95rem;
+      color: #111827;
+    }
+
+    .mini-button {
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: #fff;
+      color: #111827;
+      cursor: pointer;
+    }
+
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .stats-row span {
+      padding: 6px 8px;
+      border: 1px solid #f3f4f6;
+      border-radius: 999px;
+      background: #fcfcfd;
+    }
+
+    .timeline-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .timeline-row #activeCount {
+      margin-left: 0;
+      color: #6b7280;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .timeline-row .activity-track {
+      flex: 1;
+      height: 8px;
+      border-radius: 999px;
+      background: #eceff3;
+    }
+
+    .timeline-row .activity-segment {
+      border-radius: 999px;
+    }
+
+    .video-row {
+      margin-bottom: 12px;
+    }
+
+    .video-row details {
+      border: 1px solid #f3f4f6;
+      border-radius: 12px;
+      background: #fcfcfd;
+    }
+
+    .video-row summary {
+      padding: 8px 10px;
+      color: #6b7280;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .video-row summary::-webkit-details-marker { display: none; }
+
+    .video-row .video-form {
+      display: flex;
+      gap: 8px;
+      padding: 0 10px 10px;
+    }
+
+    .video-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: #fff;
+    }
+
+    .video-row button {
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .video-row .video-frame {
+      margin: 0 10px 10px;
+      padding: 10px;
+      border: 1px solid #f3f4f6;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .video-row .video-placeholder {
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    .video-row .video-feedback {
+      margin: 8px 10px 0;
+      font-size: 0.8rem;
+    }
+
+    .key-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .key-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: #fff;
+    }
+
+    .key-card.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
+
+    .timer-number,
+    .timer-state,
+    .hold-reading,
+    .timer-stats,
+    .key-hint,
+    .label-input {
+      display: none;
+    }
+
+    .key-button {
+      flex: 1;
+      min-height: auto;
+      margin: 0;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 999px;
+      color: var(--accent-ink);
+      background: transparent;
+      text-align: left;
+      box-shadow: none;
+    }
+
+    .key-button::before {
+      display: none;
+    }
+
+    .key-button .key-display {
+      display: inline-block;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .key-button .key-change-hint {
+      display: inline-block;
+      margin-left: 6px;
+      color: color-mix(in srgb, var(--accent-ink) 70%, #fff);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    @media (max-width: 560px) {
+      .search-row { flex-direction: column; align-items: stretch; }
+      .mini-button { width: 100%; }
+    }
   </style>
 </head>
 <body>
   <main class="page-shell">
-    <section class="panel" aria-label="Session summary">
-      <div class="top-row">
-        <h1>HoldTimer</h1>
-        <button class="reset-button" id="resetButton" type="button">Reset</button>
+    <section class="shell" aria-label="Minimal timer interface">
+      <div class="search-row">
+        <div class="search-pill" role="status" aria-live="polite">
+          <span class="emoji" aria-hidden="true">⌘</span>
+          <div>
+            <div class="search-label">HoldTimer</div>
+            <div class="search-message" id="liveMessage">Ready — hold H, K, or L.</div>
+          </div>
+        </div>
+        <button class="mini-button" id="resetButton" type="button">Reset</button>
       </div>
-      <p class="muted">Hold keys to track time. Click a card to rebind a key.</p>
 
-      <div class="summary-grid">
-        <div class="summary-box">
-          <span class="label">Total</span>
-          <strong id="grandTotal">0.00s</strong>
-        </div>
-        <div class="summary-box">
-          <span class="label">Presses</span>
-          <strong id="grandPresses">0</strong>
-        </div>
-        <div class="summary-box">
-          <span class="label">Active</span>
-          <strong id="activeKeys">0</strong>
-        </div>
+      <div class="stats-row">
+        <span>Total: <strong id="grandTotal">0.00s</strong></span>
+        <span>Presses: <strong id="grandPresses">0</strong></span>
+        <span>Active: <strong id="activeKeys">0</strong></span>
       </div>
-    </section>
 
-    <section class="panel" aria-label="Live status">
-      <div class="live-strip" role="status" aria-live="polite">
+      <div class="timeline-row">
         <span class="live-dot" id="liveDot" aria-hidden="true"></span>
-        <span id="liveMessage">Ready — hold H, K, or L anywhere outside a text box.</span>
+        <div class="activity-track" id="activityTrack" aria-hidden="true"></div>
         <span id="activeCount">0 active</span>
       </div>
-      <div class="activity-track" id="activityTrack" aria-hidden="true"></div>
-    </section>
 
-    <section class="panel" aria-label="Video companion">
-      <form class="video-form" id="videoForm">
-        <label class="sr-only" for="videoUrl">YouTube video link</label>
-        <input id="videoUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste a YouTube link…" />
-        <button type="submit">Load</button>
-      </form>
-      <p class="video-feedback" id="videoFeedback" aria-live="polite">Only YouTube links are embedded.</p>
-      <div class="video-frame">
-        <div class="video-placeholder" id="videoPlaceholder">No video loaded.</div>
-        <iframe
-          id="youtubeFrame"
-          title="Embedded YouTube video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allowfullscreen
-          hidden></iframe>
+      <div class="video-row">
+        <details>
+          <summary>Video</summary>
+          <form class="video-form" id="videoForm">
+            <label class="sr-only" for="videoUrl">YouTube video link</label>
+            <input id="videoUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste a YouTube link…" />
+            <button type="submit">Load</button>
+          </form>
+          <p class="video-feedback" id="videoFeedback" aria-live="polite">Optional.</p>
+          <div class="video-frame">
+            <div class="video-placeholder" id="videoPlaceholder">No video loaded.</div>
+            <iframe
+              id="youtubeFrame"
+              title="Embedded YouTube video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+              hidden></iframe>
+          </div>
+        </details>
       </div>
-    </section>
 
-    <section class="panel" aria-label="Key timers">
       <div class="key-grid" id="keyGrid"></div>
     </section>
   </main>
