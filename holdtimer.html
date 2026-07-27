@@ -698,89 +698,401 @@
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      color: #111827;
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.4;
+      background: #f3f4f6;
+    }
+
+    .page-shell {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+    }
+
+    h1, h2, p { margin: 0 0 8px; }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .muted {
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .summary-box {
+      padding: 8px;
+      border: 1px solid #e5e7eb;
+      background: #fafafa;
+    }
+
+    .summary-box .label {
+      display: block;
+      color: #6b7280;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .summary-box strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 1.04rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .live-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #9ca3af;
+    }
+
+    .live-dot.is-active {
+      background: #16a34a;
+      box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.16);
+    }
+
+    #activeCount {
+      margin-left: auto;
+      color: #6b7280;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .activity-track {
+      position: relative;
+      height: 10px;
+      overflow: hidden;
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      background: #e5e7eb;
+    }
+
+    .activity-segment {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-radius: 999px;
+      background: var(--segment-color, #9ca3af);
+    }
+
+    .video-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .video-form input,
+    .video-form button,
+    .reset-button,
+    .key-button,
+    .label-input {
+      font: inherit;
+    }
+
+    .video-form input {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 8px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+    }
+
+    .video-form button,
+    .reset-button {
+      padding: 7px 10px;
+      border: 1px solid #d1d5db;
+      background: #f3f4f6;
+      cursor: pointer;
+    }
+
+    .video-frame {
+      min-height: 120px;
+      padding: 10px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .video-placeholder {
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+
+    .video-frame iframe {
+      width: 100%;
+      height: 180px;
+      border: 0;
+    }
+
+    .video-feedback {
+      margin: 8px 0 0;
+      color: #6b7280;
+      font-size: 0.84rem;
+    }
+
+    .video-feedback.is-error {
+      color: #b91c1c;
+    }
+
+    .key-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .key-card {
+      --accent: #ff5e70;
+      --accent-soft: #fef2f2;
+      --accent-ink: #b91c1c;
+      padding: 10px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+    }
+
+    .key-card[data-tone="blue"] {
+      --accent: #5d77ff;
+      --accent-soft: #eff6ff;
+      --accent-ink: #1d4ed8;
+    }
+
+    .key-card[data-tone="lime"] {
+      --accent: #6dca67;
+      --accent-soft: #f0fdf4;
+      --accent-ink: #15803d;
+    }
+
+    .key-card.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .timer-number {
+      margin: 0 0 2px;
+      color: #6b7280;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .label-input {
+      width: 100%;
+      border: 0;
+      padding: 0;
+      color: #111827;
+      background: transparent;
+    }
+
+    .timer-state {
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: #4b5563;
+      background: #f3f4f6;
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+
+    .key-card.is-active .timer-state {
+      color: var(--accent-ink);
+      background: color-mix(in srgb, var(--accent) 20%, #fff);
+    }
+
+    .key-button {
+      position: relative;
+      width: 100%;
+      margin: 8px 0;
+      padding: 12px;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, #fff);
+      border-bottom-width: 4px;
+      border-radius: 10px;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+      cursor: pointer;
+    }
+
+    .key-button::before {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: var(--press-progress, 0%);
+      height: 100%;
+      content: "";
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+      pointer-events: none;
+    }
+
+    .key-button .key-display {
+      position: relative;
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .key-button .key-change-hint {
+      position: relative;
+      display: block;
+      margin-top: 3px;
+      color: color-mix(in srgb, var(--accent-ink) 80%, #fff);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .hold-reading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    .hold-reading span { color: #6b7280; }
+
+    .hold-reading strong {
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin: 0;
+    }
+
+    .timer-stats > div {
+      padding: 7px;
+      border: 1px solid #e5e7eb;
+      background: #fafafa;
+    }
+
+    .timer-stats dt {
+      color: #6b7280;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .timer-stats dd {
+      margin: 2px 0 0;
+      font-size: 0.92rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .key-hint {
+      margin: 8px 0 0;
+      color: #6b7280;
+      font-size: 0.82rem;
+    }
+
+    .tips {
+      margin-top: 8px;
+      color: #6b7280;
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 10px; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .video-form { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
   <main class="page-shell">
-    <header class="topbar">
-      <a class="brand" href="./" aria-label="HoldTimer home">
-        <span class="brand-mark" aria-hidden="true">⏱</span>
-        <span>HoldTimer</span>
-      </a>
-      <span class="topbar-note">A tiny tool for intentional practice</span>
-    </header>
+    <section class="panel" aria-label="Session summary">
+      <div class="top-row">
+        <h1>HoldTimer</h1>
+        <button class="reset-button" id="resetButton" type="button">Reset</button>
+      </div>
+      <p class="muted">Hold keys to track time. Click a card to rebind a key.</p>
 
-    <section class="hero-grid" aria-label="Session overview">
-      <section class="summary-card" aria-labelledby="page-title">
-        <div>
-          <p class="eyebrow">Your session</p>
-          <h1 id="page-title">Time every hold.</h1>
-          <div class="total-time" id="grandTotal" aria-live="off">0.00s</div>
-          <p class="total-caption">Combined time held across all keys</p>
+      <div class="summary-grid">
+        <div class="summary-box">
+          <span class="label">Total</span>
+          <strong id="grandTotal">0.00s</strong>
         </div>
-        <dl class="summary-stats">
-          <div class="summary-stat">
-            <dt>Total presses</dt>
-            <dd id="grandPresses">0</dd>
-          </div>
-          <div class="summary-stat">
-            <dt>Keys active</dt>
-            <dd id="activeKeys">0</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section class="video-card" aria-labelledby="video-title">
-        <div class="video-heading">
-          <h2 id="video-title">Video companion</h2>
-          <span>Optional</span>
+        <div class="summary-box">
+          <span class="label">Presses</span>
+          <strong id="grandPresses">0</strong>
         </div>
-        <div class="video-frame">
-          <div class="video-placeholder" id="videoPlaceholder">
-            <span class="play-icon" aria-hidden="true">▶</span>
-            <strong>Bring a YouTube video along</strong>
-            <p>Paste a link below to keep your practice video in view while you time.</p>
-          </div>
-          <iframe
-            id="youtubeFrame"
-            title="Embedded YouTube video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen
-            hidden></iframe>
+        <div class="summary-box">
+          <span class="label">Active</span>
+          <strong id="activeKeys">0</strong>
         </div>
-        <form class="video-form" id="videoForm">
-          <label class="sr-only" for="videoUrl">YouTube video link</label>
-          <input id="videoUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste a YouTube link…" />
-          <button type="submit">Load video</button>
-        </form>
-        <p class="video-feedback" id="videoFeedback" aria-live="polite">Only YouTube links are embedded.</p>
-      </section>
+      </div>
     </section>
 
-    <section class="tracker-panel" aria-labelledby="tracker-title">
-      <div class="tracker-toolbar">
-        <div>
-          <p class="eyebrow">Key hold stopwatch</p>
-          <h2 id="tracker-title">Hold a key to start its timer.</h2>
-          <p>Use the preset keys below, or click a big key to choose a different one. Each key tracks its own time and press count.</p>
-        </div>
-        <button class="reset-button" id="resetButton" type="button">Reset session</button>
-      </div>
-
+    <section class="panel" aria-label="Live status">
       <div class="live-strip" role="status" aria-live="polite">
         <span class="live-dot" id="liveDot" aria-hidden="true"></span>
         <span id="liveMessage">Ready — hold H, K, or L anywhere outside a text box.</span>
         <span id="activeCount">0 active</span>
       </div>
-
       <div class="activity-track" id="activityTrack" aria-hidden="true"></div>
+    </section>
 
-      <div class="key-grid" id="keyGrid" aria-label="Key timers"></div>
+    <section class="panel" aria-label="Video companion">
+      <form class="video-form" id="videoForm">
+        <label class="sr-only" for="videoUrl">YouTube video link</label>
+        <input id="videoUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste a YouTube link…" />
+        <button type="submit">Load</button>
+      </form>
+      <p class="video-feedback" id="videoFeedback" aria-live="polite">Only YouTube links are embedded.</p>
+      <div class="video-frame">
+        <div class="video-placeholder" id="videoPlaceholder">No video loaded.</div>
+        <iframe
+          id="youtubeFrame"
+          title="Embedded YouTube video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+          hidden></iframe>
+      </div>
+    </section>
 
-      <p class="tips">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 10v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="1" fill="currentColor"/></svg>
-        Your totals stay on this page while it is open. Changing a key or label is saved in this browser; reset only clears the timer results.
-      </p>
+    <section class="panel" aria-label="Key timers">
+      <div class="key-grid" id="keyGrid"></div>
     </section>
   </main>
 
