@@ -530,11 +530,13 @@
     }
 
     .key-button {
+      position: relative;
       display: grid;
       width: 100%;
       min-height: 116px;
       margin: 20px 0 16px;
       padding: 12px;
+      overflow: hidden;
       place-items: center;
       border: 1px solid color-mix(in srgb, var(--accent) 35%, #fff);
       border-bottom-width: 6px;
@@ -543,6 +545,17 @@
       background: var(--accent-soft);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
       transition: transform 130ms ease, border-bottom-width 130ms ease, background 130ms ease;
+    }
+
+    .key-button::before {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: var(--press-progress, 0%);
+      height: 100%;
+      content: "";
+      background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 18%, transparent) 0%, color-mix(in srgb, var(--accent) 35%, transparent) 100%);
+      transition: width 120ms linear, opacity 120ms ease;
+      pointer-events: none;
     }
 
     .key-button:hover { background: color-mix(in srgb, var(--accent-soft) 72%, #fff); }
@@ -760,11 +773,7 @@
         <span id="activeCount">0 active</span>
       </div>
 
-      <div class="activity-track" aria-hidden="true">
-        <span class="activity-segment" data-activity="coral" data-tone="coral"></span>
-        <span class="activity-segment" data-activity="blue" data-tone="blue"></span>
-        <span class="activity-segment" data-activity="lime" data-tone="lime"></span>
-      </div>
+      <div class="activity-track" id="activityTrack" aria-hidden="true"></div>
 
       <div class="key-grid" id="keyGrid" aria-label="Key timers"></div>
 
@@ -797,6 +806,7 @@
       const refs = new Map();
       let pendingBindingId = null;
       let animationFrameId = null;
+      let holdHistory = [];
 
       const grandTotal = document.getElementById("grandTotal");
       const grandPresses = document.getElementById("grandPresses");
@@ -811,6 +821,7 @@
       const youtubeFrame = document.getElementById("youtubeFrame");
       const videoPlaceholder = document.getElementById("videoPlaceholder");
       const videoFeedback = document.getElementById("videoFeedback");
+      const activityTrack = document.getElementById("activityTrack");
 
       function getTimer(id) {
         return timers.find((timer) => timer.id === id);
@@ -990,12 +1001,50 @@
         ref.keyButton.setAttribute("aria-label", `Change key for ${timer.label}`);
       }
 
+      function renderActivityBar(now) {
+        const active = activeTimers();
+        const segments = [
+          ...holdHistory.map((entry) => ({ ...entry, duration: entry.duration }))
+        ];
+
+        active.forEach((timer) => {
+          segments.push({
+            timerId: timer.id,
+            tone: timer.tone,
+            duration: currentHold(timer, now),
+            isActive: true
+          });
+        });
+
+        const totalDuration = segments.reduce((sum, segment) => sum + segment.duration, 0);
+        activityTrack.replaceChildren();
+
+        if (segments.length === 0 || totalDuration <= 0) {
+          const emptySegment = makeElement("span", "activity-segment");
+          emptySegment.style.left = "0%";
+          emptySegment.style.width = "100%";
+          emptySegment.style.setProperty("--segment-color", "#d7dce5");
+          activityTrack.append(emptySegment);
+          return;
+        }
+
+        let cursor = 0;
+        segments.forEach((segment) => {
+          const widthPercent = Math.max(0, Math.min(100 - cursor, (segment.duration / totalDuration) * 100));
+          if (widthPercent <= 0) return;
+
+          const element = makeElement("span", "activity-segment");
+          element.style.left = `${cursor}%`;
+          element.style.width = `${widthPercent}%`;
+          element.style.setProperty("--segment-color", segment.tone === "coral" ? "#ff5e70" : segment.tone === "blue" ? "#5d77ff" : "#6dca67");
+          if (segment.isActive) element.classList.add("is-active");
+          activityTrack.append(element);
+          cursor += widthPercent;
+        });
+      }
+
       function render(now = performance.now()) {
         const active = activeTimers();
-        const totalTime = allTotal(now);
-        const shares = timers.map((timer) => totalTime > 0 ? timerTotal(timer, now) / totalTime : 0);
-        let cursor = 0;
-
         timers.forEach((timer) => {
           const ref = refs.get(timer.id);
           const isActive = timer.startedAt !== null;
@@ -1008,18 +1057,12 @@
           ref.totalValue.textContent = formatDuration(timerTotal(timer, now));
           ref.countValue.textContent = String(timer.count);
           ref.keyHint.textContent = pendingBindingId === timer.id ? "Press a key now" : "Click to change key";
-
-          const activity = document.querySelector(`[data-activity="${timer.id}"]`);
-          if (activity) {
-            const widthPercent = Math.max(0, Math.min(100, shares[timers.findIndex((candidate) => candidate.id === timer.id)] * 100));
-            activity.style.left = `${cursor}%`;
-            activity.style.width = `${widthPercent}%`;
-            activity.classList.toggle("is-active", isActive);
-            cursor += widthPercent;
-          }
+      ref.keyButton.style.setProperty("--press-progress", isActive ? "100%" : "0%");
+      ref.keyButton.classList.toggle("is-pressing", isActive);
         });
 
-        grandTotal.textContent = formatDuration(totalTime);
+        renderActivityBar(now);
+        grandTotal.textContent = formatDuration(allTotal(now));
         grandPresses.textContent = String(timers.reduce((count, timer) => count + timer.count, 0));
         activeKeys.textContent = String(active.length);
         activeCount.textContent = `${active.length} active`;
@@ -1057,6 +1100,7 @@
         const duration = currentHold(timer, now);
         timer.total += duration;
         timer.lastHold = duration;
+        holdHistory.push({ timerId: timer.id, tone: timer.tone, duration });
         timer.startedAt = null;
         render(now);
         if (announce) setLiveMessage(`${timer.label}: ${formatDuration(duration)} added to your total.`);
@@ -1116,6 +1160,7 @@
           cancelAnimationFrame(animationFrameId);
           animationFrameId = null;
         }
+        holdHistory = [];
         timers.forEach((timer) => {
           timer.total = 0;
           timer.count = 0;
