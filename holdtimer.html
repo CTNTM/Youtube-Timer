@@ -781,7 +781,7 @@
 
     .live-dot.is-active {
       background: #16a34a;
-      box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.16);
+      box-shadow: none;
     }
 
     #activeCount {
@@ -796,7 +796,7 @@
       height: 12px;
       overflow: hidden;
       border: 1px solid #d1d5db;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #e5e7eb;
     }
 
@@ -804,8 +804,16 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      border-radius: 999px;
+      height: 100%;
+      border-radius: 12px;
       background: var(--segment-color, #9ca3af);
+      box-shadow: none;
+      transform: none;
+    }
+
+    .activity-track .activity-segment.is-active {
+      box-shadow: none;
+      transform: none;
     }
 
     .video-form {
@@ -1046,9 +1054,9 @@
     .shell {
       padding: 18px;
       border: 1px solid #e5e7eb;
-      border-radius: 22px;
+      border-radius: 12px;
       background: #fff;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      box-shadow: none;
     }
 
     .search-row {
@@ -1065,7 +1073,7 @@
       gap: 10px;
       padding: 12px 14px;
       border: 1px solid #e5e7eb;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #fafafa;
       color: #111827;
     }
@@ -1096,7 +1104,7 @@
     .mini-button {
       padding: 8px 12px;
       border: 1px solid #e5e7eb;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #fff;
       color: #111827;
       cursor: pointer;
@@ -1114,7 +1122,7 @@
     .stats-row span {
       padding: 6px 8px;
       border: 1px solid #f3f4f6;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #fcfcfd;
     }
 
@@ -1135,12 +1143,12 @@
     .timeline-row .activity-track {
       flex: 1;
       height: 12px;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #eceff3;
     }
 
     .timeline-row .activity-segment {
-      border-radius: 999px;
+      border-radius: 12px;
     }
 
     .video-row {
@@ -1173,14 +1181,14 @@
       min-width: 0;
       padding: 8px 10px;
       border: 1px solid #e5e7eb;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #fff;
     }
 
     .video-row button {
       padding: 8px 10px;
       border: 1px solid #e5e7eb;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #fff;
       cursor: pointer;
     }
@@ -1214,13 +1222,13 @@
       gap: 8px;
       padding: 8px 10px;
       border: 1px solid #e5e7eb;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #fff;
     }
 
     .key-card.is-active {
-      border-color: var(--accent);
-      background: var(--accent-soft);
+      border-color: #111827;
+      background: #fff;
     }
 
     .card-top {
@@ -1244,10 +1252,10 @@
       min-height: auto;
       margin: 0;
       padding: 6px 10px;
-      border: 0;
-      border-radius: 999px;
-      color: var(--accent-ink);
-      background: transparent;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      color: #111827;
+      background: #f9f9f9;
       text-align: left;
       box-shadow: none;
     }
@@ -1258,6 +1266,7 @@
 
     .key-button .key-display {
       display: inline-block;
+      color: #111827;
       font-size: 0.95rem;
       font-weight: 700;
     }
@@ -1265,7 +1274,7 @@
     .key-button .key-change-hint {
       display: inline-block;
       margin-left: 6px;
-      color: color-mix(in srgb, var(--accent-ink) 70%, #fff);
+      color: #6b7280;
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
