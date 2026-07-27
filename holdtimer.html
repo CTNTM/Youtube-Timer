@@ -282,6 +282,59 @@
       background: #e5e7eb;
     }
 
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+
+    .stat-circle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: #f3f4f6;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .stat-circle-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .stat-circle.inactive .stat-circle-dot {
+      opacity: 0.3;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 6px;
+      margin: 12px 0;
+    }
+
+    .action-btn {
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #f9f9f9;
+      color: #111827;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .action-btn:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+
     .video-form {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -578,6 +631,14 @@
       font-weight: 800;
       line-height: 0.82;
       letter-spacing: -0.11em;
+    }
+
+    .key-button .key-runtime {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: #6b7280;
+      font-weight: 500;
     }
 
     .key-button .key-change-hint {
@@ -1301,6 +1362,14 @@
         <span id="activeCount">0 active</span>
       </div>
 
+      <div class="stats-row" id="statsRow"></div>
+
+      <div class="action-row">
+        <button type="button" id="addTimerBtn" class="action-btn">+ Add</button>
+        <button type="button" id="shareBtn" class="action-btn">Share</button>
+        <button type="button" id="exportBtn" class="action-btn">Export</button>
+      </div>
+
       <div class="video-row">
         <details>
           <summary>Video</summary>
@@ -1373,9 +1442,33 @@
       const videoPlaceholder = document.getElementById("videoPlaceholder");
       const videoFeedback = document.getElementById("videoFeedback");
       const activityTrack = document.getElementById("activityTrack");
+      const statsRow = document.getElementById("statsRow");
+      const addTimerBtn = document.getElementById("addTimerBtn");
+      const shareBtn = document.getElementById("shareBtn");
+      const exportBtn = document.getElementById("exportBtn");
+
+      const TONE_COLORS = {
+        coral: "#ff5e70",
+        blue: "#5d77ff",
+        lime: "#6dca67"
+      };
+
+      const TONE_NAMES = {
+        coral: "Coral",
+        blue: "Blue",
+        lime: "Lime"
+      };
 
       function getTimer(id) {
         return timers.find((timer) => timer.id === id);
+      }
+
+      function generateTimerId() {
+        return "timer-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+      }
+
+      function getTotalDuration() {
+        return timers.reduce((sum, timer) => sum + timer.total, 0) || 1;
       }
 
       function formatDuration(milliseconds) {
@@ -1458,6 +1551,123 @@
         }
       }
 
+      function renderStatsRow() {
+        const total = getTotalDuration();
+        statsRow.replaceChildren();
+        timers.forEach((timer) => {
+          const pct = total > 0 ? Math.round((timer.total / total) * 100) : 0;
+          const circle = makeElement("div", "stat-circle");
+          if (pct === 0) circle.classList.add("inactive");
+          circle.style.color = TONE_COLORS[timer.tone] || "#9ca3af";
+          const dot = makeElement("span", "stat-circle-dot");
+          const label = makeElement("span", "", `${pct}%`);
+          circle.append(dot, label);
+          statsRow.append(circle);
+        });
+      }
+
+      function encodeShareUrl() {
+        const data = {
+          timers: timers.map((t) => ({
+            id: t.id,
+            tone: t.tone,
+            label: t.label,
+            total: t.total,
+            count: t.count
+          })),
+          video: videoUrl.value || ""
+        };
+        const json = JSON.stringify(data);
+        const encoded = btoa(json);
+        const url = new URL(window.location);
+        url.searchParams.set("share", encoded);
+        return url.toString();
+      }
+
+      function decodeShareUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const encoded = params.get("share");
+        if (!encoded) return null;
+        try {
+          const json = atob(encoded);
+          return JSON.parse(json);
+        } catch {
+          return null;
+        }
+      }
+
+      function generateSpreadsheet() {
+        const data = decodeShareUrl() || { timers, video: videoUrl.value };
+        const total = (data.timers || []).reduce((sum, t) => sum + (t.total || 0), 0) || 1;
+        
+        let html = `<html><head><meta charset="UTF-8"><style>
+          body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 20px; background: #f5f5f5; }
+          .sheet { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+          h1 { margin-top: 0; }
+          .video-row { margin: 16px 0; display: flex; gap: 16px; align-items: center; }
+          .video-thumb { width: 120px; height: 68px; background: #ddd; border-radius: 4px; }
+          .video-info a { color: #3b82f6; text-decoration: none; }
+          table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+          th { text-align: left; padding: 8px; border-bottom: 2px solid #e5e7eb; font-weight: 600; }
+          td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+          .color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+        </style></head><body><div class="sheet">`;
+        
+        html += `<h1>HoldTimer Results</h1>`;
+        
+        if (data.video) {
+          const videoId = extractYoutubeId(data.video);
+          html += `<div class="video-row">
+            <img class="video-thumb" src="https://img.youtube.com/vi/${videoId}/default.jpg" alt="Video">
+            <div class="video-info">
+              <p><strong>Video:</strong> <a href="${data.video}" target="_blank">${data.video}</a></p>
+            </div>
+          </div>`;
+        }
+        
+        html += `<table><tr><th>Task</th><th>Time</th><th>Percentage</th><th>Presses</th></tr>`;
+        (data.timers || []).forEach((t) => {
+          const pct = total > 0 ? Math.round((t.total / total) * 100) : 0;
+          const color = TONE_COLORS[t.tone] || "#9ca3af";
+          html += `<tr>
+            <td><span class="color-dot" style="background:${color}"></span>${t.label}</td>
+            <td>${formatDuration(t.total)}</td>
+            <td>${pct}%</td>
+            <td>${t.count}</td>
+          </tr>`;
+        });
+        html += `</table></div></body></html>`;
+        
+        const blob = new Blob([html], { type: "text/html" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "holdtimer-results.html";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      function addNewTimer() {
+        const newTones = ["coral", "blue", "lime"];
+        const nextTone = newTones[timers.length % newTones.length];
+        const newTimer = {
+          id: generateTimerId(),
+          tone: nextTone,
+          code: "Key" + String.fromCharCode(65 + timers.length),
+          key: String.fromCharCode(65 + timers.length),
+          label: `Task ${timers.length + 1}`,
+          total: 0,
+          count: 0,
+          startedAt: null,
+          lastHold: 0
+        };
+        timers.push(newTimer);
+        saveSettings();
+        buildTimerCards();
+        timers.forEach(updateTimerIdentity);
+        render();
+      }
+
+
       function makeElement(tag, className, text) {
         const element = document.createElement(tag);
         if (className) element.className = className;
@@ -1506,8 +1716,9 @@
           const keyButton = makeElement("button", "key-button");
           keyButton.type = "button";
           const keyDisplay = makeElement("span", "key-display", timer.key);
+          const runtimeValue = makeElement("span", "key-runtime", "0.00s");
           const keyHint = makeElement("span", "key-change-hint", "Click to change key");
-          keyButton.append(keyDisplay, keyHint);
+          keyButton.append(keyDisplay, runtimeValue, keyHint);
           keyButton.addEventListener("click", () => beginRebinding(timer));
 
           const holdReading = makeElement("div", "hold-reading");
@@ -1534,6 +1745,7 @@
             state,
             keyButton,
             keyDisplay,
+            runtimeValue,
             keyHint,
             holdCaption,
             holdValue,
@@ -1619,6 +1831,7 @@
           ref.holdCaption.textContent = isActive ? "This hold" : "Last hold";
           ref.holdValue.textContent = formatDuration(hold);
           ref.totalValue.textContent = formatDuration(timerTotal(timer, now));
+          ref.runtimeValue.textContent = formatDuration(timer.total);
           ref.countValue.textContent = String(timer.count);
           ref.keyHint.textContent = pendingBindingId === timer.id ? "Press a key now" : "Click to change key";
       ref.keyButton.style.setProperty("--press-progress", isActive ? "100%" : "0%");
@@ -1626,6 +1839,7 @@
         });
 
         renderActivityBar(now);
+        renderStatsRow();
         grandTotal.textContent = formatDuration(allTotal(now));
         grandPresses.textContent = String(timers.reduce((count, timer) => count + timer.count, 0));
         activeKeys.textContent = String(active.length);
@@ -1799,6 +2013,17 @@
       resetButton.addEventListener("click", resetSession);
       videoForm.addEventListener("submit", loadVideo);
 
+      addTimerBtn.addEventListener("click", addNewTimer);
+      shareBtn.addEventListener("click", () => {
+        const url = encodeShareUrl();
+        navigator.clipboard.writeText(url).then(() => {
+          alert("Share link copied to clipboard!");
+        }).catch(() => {
+          prompt("Copy this link:", url);
+        });
+      });
+      exportBtn.addEventListener("click", generateSpreadsheet);
+
       document.querySelectorAll(".video-control-btn").forEach((btn) => {
         btn.addEventListener("click", (event) => {
           event.preventDefault();
@@ -1831,6 +2056,23 @@
       loadSettings();
       buildTimerCards();
       timers.forEach(updateTimerIdentity);
+
+      // Load shared results if present
+      const sharedData = decodeShareUrl();
+      if (sharedData && Array.isArray(sharedData.timers)) {
+        sharedData.timers.forEach((sharedTimer, idx) => {
+          if (idx < timers.length) {
+            timers[idx].total = sharedTimer.total || 0;
+            timers[idx].count = sharedTimer.count || 0;
+            timers[idx].label = sharedTimer.label || timers[idx].label;
+          }
+        });
+        if (sharedData.video) {
+          videoUrl.value = sharedData.video;
+        }
+        buildTimerCards();
+      }
+
       render();
     })();
   </script>
